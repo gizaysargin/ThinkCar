@@ -6,3 +6,4 @@ Bu bizim bitirme projemiz için açtığımız bir repo.
 
 
 Bye.
+hi ben gülce
