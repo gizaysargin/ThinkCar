@@ -5,8 +5,10 @@ Created on Mon Apr  5 15:43:21 2021
 @author: admin
 """
 import os
-os.chdir(r"C:\Users\admin\Desktop")
+os.chdir(r"C:\Users\admin\Desktop\Image-Segmentation\ThinkCar")
 outputdir = r"C:\Users\admin\Desktop"
+rootdir = r"C:\Users\admin\Desktop\Image-Segmentation\ThinkCar"
+inputdir = r"C:\Users\admin\Desktop\ThinkCar\WindowsNoEditor\scenario_runner-0.9.10\_out"
 import torch
 import numpy as np
 import torchvision as vis
@@ -20,6 +22,7 @@ import utils
 import transforms
 from collections import namedtuple
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 
 #%%
 
@@ -175,39 +178,50 @@ model.load_state_dict(mdl["model"])
 #%%
 
 from PIL import Image
+from glob import glob
 
-im = Image.open("C:/Users/admin/Desktop/CityScapes/leftImg8bit/test/berlin/berlin_000011_000019_leftImg8bit.png")
-tr = t.Compose([t.Resize(256), t.ToTensor()])
-imt = tr(im)
-imt = imt.unsqueeze(0)
-imt = imt.to(device)
-model.eval()
-
-out = model(imt)
+images = sorted(glob(inputdir+"/*.png"))
 
 #%%
-op = out["out"].detach().cpu().numpy()
-cop=op.argmax(1)
-cop = np.squeeze(cop).astype(np.uint8)
-#%%
-mask = np.empty((im.size[1], im.size[0], 3))
-r = Image.fromarray(cop).resize(im.size,resample=Image.NEAREST)
 
 colors = []
 for clas in classes:
     colors.append(clas[-1])
 
-for i in range(im.size[1]):
-    for j in range(im.size[0]):
-        px = r.getpixel((i,j))
-        mask[i,j,0] = colors[px-1][0]
-        mask[i,j,1] = colors[px-1][1]
-        mask[i,j,2] = colors[px-1][2]
-mask = mask.astype(np.uint8)
+for image in images:
+
+    im = Image.open(image).convert("RGB")
+    tr = t.Compose([t.Resize(256), t.ToTensor()])
+    imt = tr(im)
+    imt = imt.unsqueeze(0)
+    imt = imt.to(device)
+    model.eval()
+
+    out = model(imt)
+
+    op = out["out"].detach().cpu().numpy()
+    cop=op.argmax(1)
+    cop = np.squeeze(cop).astype(np.uint8)
+    
+    mask = np.empty((im.size[1], im.size[0], 3))
+    r = Image.fromarray(cop).resize(im.size,resample=Image.NEAREST)
+
+    for i in range(im.size[1]):
+        for j in range(im.size[0]):
+            px = r.getpixel((j,i))
+            mask[i,j,0] = colors[px-1][0]
+            mask[i,j,1] = colors[px-1][1]
+            mask[i,j,2] = colors[px-1][2]
+    mask = mask.astype(np.uint8)
+    
+    m = Image.fromarray(mask)
+    m.save(os.path.splitext(image)[0]+"-mask.png")
 #%%
 
 m = Image.fromarray(mask)
 m.show()
+#%%
+im.show()
 
 
 
